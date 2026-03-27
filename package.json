@@ -1,0 +1,20 @@
+{
+  "name": "multi-agent-prd-generator",
+  "version": "0.1.0",
+  "description": "A 5-agent pipeline that transforms a one-line idea into a full PRD using Claude",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/main.ts",
+    "build": "tsc",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
