@@ -2,12 +2,11 @@
 
 export interface AgentInput {
   idea: string;
-  previousOutputs: Partial<PipelineOutputs>;
+  previousOutputs: Partial<Record<AgentName, string>>;
 }
 
 export interface AgentOutput {
   agentName: AgentName;
-  outputPath: string;
   content: string;
   durationMs: number;
 }
@@ -82,17 +81,9 @@ export interface FinalPrd {
 
 // ─── Pipeline state ───────────────────────────────────────────────────────────
 
-export interface PipelineOutputs {
-  research: ResearchReport;
-  outline: PrdOutline;
-  draft: PrdDraft;
-  critique: CriticFeedback;
-  final: FinalPrd;
-}
-
 export interface PipelineState {
   idea: string;
   startedAt: string; // ISO timestamp
-  outputs: Partial<PipelineOutputs>;
+  outputs: Partial<Record<AgentName, string>>;
   completedAgents: AgentName[];
 }

@@ -5,18 +5,9 @@ import { runPlanner } from "../agents/planner";
 import { runGenerator } from "../agents/generator";
 import { runCritic } from "../agents/critic";
 import { runRefiner } from "../agents/refiner";
-import { outputExists } from "../utils/fileIO";
 import { log } from "../utils/logger";
 
 const PIPELINE = "Pipeline";
-
-export const AGENT_OUTPUT_PATHS: Record<AgentName, string> = {
-  Researcher: "outputs/01_research.md",
-  Planner: "outputs/02_outline.md",
-  Generator: "outputs/03_prd_draft.md",
-  Critic: "outputs/04_critique.md",
-  Refiner: "outputs/05_final_prd.md",
-};
 
 export type ProgressEvent =
   | { type: "agent_start"; agent: AgentName }
@@ -48,20 +39,13 @@ export async function runPipeline(
   ];
 
   for (const agent of agents) {
-    const outputPath = AGENT_OUTPUT_PATHS[agent.name];
-
-    if (await outputExists(outputPath)) {
-      log(PIPELINE, `Skipping ${agent.name} — output already exists at ${outputPath}`);
-      state.completedAgents.push(agent.name);
-      continue;
-    }
-
     log(PIPELINE, `━━━ Starting ${agent.name} ━━━`);
     onProgress?.({ type: "agent_start", agent: agent.name });
 
     try {
       const result = await agent.run();
       results.push(result);
+      state.outputs[agent.name] = result.content;
       state.completedAgents.push(agent.name);
       onProgress?.({ type: "agent_done", agent: agent.name, durationMs: result.durationMs, content: result.content });
     } catch (err) {

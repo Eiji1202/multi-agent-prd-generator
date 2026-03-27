@@ -7,11 +7,11 @@ function printBanner(idea: string): void {
   console.log("└─────────────────────────────────────────────┘");
   console.log(`\nIdea: "${idea}"\n`);
   console.log("Pipeline:");
-  console.log("  1. Researcher  → outputs/01_research.md");
-  console.log("  2. Planner     → outputs/02_outline.md");
-  console.log("  3. Generator   → outputs/03_prd_draft.md");
-  console.log("  4. Critic      → outputs/04_critique.md");
-  console.log("  5. Refiner     → outputs/05_final_prd.md");
+  console.log("  1. Researcher");
+  console.log("  2. Planner");
+  console.log("  3. Generator");
+  console.log("  4. Critic");
+  console.log("  5. Refiner");
   console.log("");
 }
 
@@ -34,8 +34,7 @@ async function main(): Promise<void> {
   const state = await runPipeline(idea);
 
   console.log("\n✓ Done!");
-  console.log(`  Completed agents: ${state.completedAgents.join(" → ")}`);
-  console.log("  Final PRD: outputs/05_final_prd.md\n");
+  console.log(`  Completed agents: ${state.completedAgents.join(" → ")}\n`);
 }
 
 main().catch((err) => {
