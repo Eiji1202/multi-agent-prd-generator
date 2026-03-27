@@ -7,62 +7,106 @@ const OUTPUT_PATH = "outputs/04_critique.md";
 const AGENT_NAME = "Critic" as const;
 const MAX_RETRIES = 3;
 
-const SYSTEM_PROMPT = `You are a ruthlessly rigorous product critic. Your sole job is to find problems in a PRD — NOT to praise it.
+// ─── Specialist prompts ────────────────────────────────────────────────────────
 
-## Scoring Rubric
+const UX_CRITIC_PROMPT = `You are a ruthless UX/Design critic reviewing a PRD. Focus ONLY on user experience issues.
 
-Score the PRD on each of these 4 dimensions from 1 (terrible) to 5 (excellent):
+Find problems with:
+- User personas (are they specific enough? do they have real pain points?)
+- User stories (are they meaningful? do they cover edge cases?)
+- User flows and interactions (what's unclear or missing?)
+- Accessibility and inclusivity gaps
+- Assumptions about user behavior that aren't validated
 
-### 1. Completeness (1–5)
-Are all standard PRD sections present and non-empty?
-- 5: All sections present, detailed, and complete
-- 3: Most sections present but some are thin or missing
-- 1: Major sections missing entirely
+Format your output as:
+### UX/Design Issues
+For each issue: **[CRITICAL/MAJOR/MINOR]** [Section]: [Problem]. [Why it matters]. [Fix].
 
-### 2. Clarity (1–5)
-Are requirements specific, unambiguous, and testable?
-- 5: Every requirement is specific and verifiable
-- 3: Some requirements are vague or untestable
-- 1: Most requirements are vague or contradictory
+You MUST find at least 2 issues. Be specific and direct.`;
 
-### 3. Feasibility (1–5)
-Is the scope realistic for a real product team?
-- 5: Scope is well-defined, realistic, and prioritized
-- 3: Some scope concerns or unrealistic expectations
-- 1: Massively over-scoped or technically infeasible
+const TECH_CRITIC_PROMPT = `You are a ruthless Technical Feasibility critic reviewing a PRD. Focus ONLY on technical issues.
 
-### 4. User Focus (1–5)
-Is there a clear, specific user problem being solved?
-- 5: Tight user focus with validated pain points
-- 3: Users mentioned but problem is generic or assumed
-- 1: No clear user problem — solution in search of a problem
+Find problems with:
+- Non-functional requirements (are they specific and measurable?)
+- Technical feasibility (is anything unrealistic or under-specified?)
+- Security and privacy gaps
+- Scalability assumptions
+- Missing integration or infrastructure requirements
+- Testability of requirements
 
-## Output Format
+Format your output as:
+### Technical Issues
+For each issue: **[CRITICAL/MAJOR/MINOR]** [Section]: [Problem]. [Why it matters]. [Fix].
 
-Produce your critique in this exact structure:
+You MUST find at least 2 issues. Be specific and direct.`;
 
-### Scores
+const BUSINESS_CRITIC_PROMPT = `You are a ruthless Business/Market critic reviewing a PRD. Focus ONLY on business issues.
+
+Find problems with:
+- Goal clarity (are goals specific, measurable, time-bound?)
+- Success metrics (are KPIs actionable? do they cover leading AND lagging indicators?)
+- Scope creep risk (what's undefined that could expand scope?)
+- Competitive differentiation (is the value proposition clear?)
+- Missing stakeholder considerations
+- Open questions that are blockers, not nice-to-haves
+
+Format your output as:
+### Business/Market Issues
+For each issue: **[CRITICAL/MAJOR/MINOR]** [Section]: [Problem]. [Why it matters]. [Fix].
+
+You MUST find at least 2 issues. Be specific and direct.`;
+
+const SYNTHESIZER_PROMPT = `You are a lead product critic synthesizing feedback from three specialist reviewers.
+
+Given UX, Technical, and Business critiques of a PRD, produce a final consolidated critique:
+
+### Overall Score
 | Dimension | Score | Justification |
 |-----------|-------|---------------|
-| Completeness | X/5 | ... |
-| Clarity | X/5 | ... |
-| Feasibility | X/5 | ... |
-| User Focus | X/5 | ... |
-| **Overall** | **X/20** | |
+| UX / User Focus | X/5 | ... |
+| Technical Feasibility | X/5 | ... |
+| Business Clarity | X/5 | ... |
+| **Overall** | **X/15** | |
 
-### Critical Issues (score ≤ 2 in any dimension)
-List any dimensions that scored ≤ 2 and why they are blockers.
+### Top 3 Blockers
+The most critical issues that MUST be fixed before this PRD can be acted on.
 
-### Issues Found
-For each issue, use this format:
-- **[CRITICAL/MAJOR/MINOR]** [Section]: [Specific problem]. [Why it matters]. [What should be done instead].
+### All Issues (prioritized)
+Merge and deduplicate all issues from the three reviews. Format:
+- **[CRITICAL/MAJOR/MINOR]** [Section]: [Problem]. [Fix].
 
-You MUST find at least 3 issues. If you cannot find 3 real issues, your standards are too low.
+### Summary Recommendation
+One paragraph: what the Refiner must focus on most to improve this PRD.`;
 
-### What's Missing
-List concrete things that should be in the PRD but aren't.
+// ─── Helper: run one specialist critic ────────────────────────────────────────
 
-Do NOT say anything positive. Do NOT soften criticism. Be direct and specific.`;
+async function runSpecialist(
+  client: Anthropic,
+  role: string,
+  systemPrompt: string,
+  draft: string
+): Promise<string> {
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-5",
+    max_tokens: 2048,
+    system: systemPrompt,
+    messages: [
+      {
+        role: "user",
+        content: `Review this PRD from your specialist perspective:\n\n---\n\n${draft}`,
+      },
+    ],
+  });
+
+  log(AGENT_NAME, `${role} review complete`);
+
+  return message.content
+    .filter((block) => block.type === "text")
+    .map((block) => block.text)
+    .join("\n");
+}
+
+// ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function runCritic(
   client: Anthropic,
@@ -72,29 +116,57 @@ export async function runCritic(
   log(AGENT_NAME, "Reading PRD draft…");
   const draft = await loadOutput("outputs/03_prd_draft.md");
 
-  log(AGENT_NAME, `Critiquing PRD for: "${input.idea}"`);
+  log(AGENT_NAME, "Running UX, Technical, and Business critics in parallel…");
   let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const message = await client.messages.create({
+      // ── Parallel phase: 3 specialists run concurrently ──────────────────────
+      const [uxFeedback, techFeedback, bizFeedback] = await Promise.all([
+        runSpecialist(client, "UX/Design", UX_CRITIC_PROMPT, draft),
+        runSpecialist(client, "Technical", TECH_CRITIC_PROMPT, draft),
+        runSpecialist(client, "Business", BUSINESS_CRITIC_PROMPT, draft),
+      ]);
+
+      // ── Sequential phase: synthesize the three reviews ──────────────────────
+      log(AGENT_NAME, "Synthesizing parallel critiques…");
+      const synthesis = await client.messages.create({
         model: "claude-sonnet-4-5",
-        max_tokens: 4096,
-        system: SYSTEM_PROMPT,
+        max_tokens: 3072,
+        system: SYNTHESIZER_PROMPT,
         messages: [
           {
             role: "user",
-            content: `Find every problem with this PRD. Be merciless.\n\n---\n\n${draft}`,
+            content: `Synthesize these three specialist reviews into a final critique.\n\n---\n\n## UX/Design Review\n${uxFeedback}\n\n## Technical Review\n${techFeedback}\n\n## Business Review\n${bizFeedback}`,
           },
         ],
       });
 
-      const content = message.content
+      const synthesisText = synthesis.content
         .filter((block) => block.type === "text")
         .map((block) => block.text)
         .join("\n");
 
-      const output = `# PRD Critique\n\n**Idea:** ${input.idea}\n\n${content}`;
+      const output = [
+        `# PRD Critique`,
+        ``,
+        `**Idea:** ${input.idea}`,
+        ``,
+        `## UX/Design Review`,
+        uxFeedback,
+        ``,
+        `## Technical Review`,
+        techFeedback,
+        ``,
+        `## Business/Market Review`,
+        bizFeedback,
+        ``,
+        `---`,
+        ``,
+        `## Synthesized Critique`,
+        synthesisText,
+      ].join("\n");
+
       await saveOutput(OUTPUT_PATH, output);
 
       const durationMs = Date.now() - startedAt;
