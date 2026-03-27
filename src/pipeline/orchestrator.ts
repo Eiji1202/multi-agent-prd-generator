@@ -1,16 +1,16 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { PipelineState, AgentName, AgentOutput } from "../types/index.js";
-import { runResearcher } from "../agents/researcher.js";
-import { runPlanner } from "../agents/planner.js";
-import { runGenerator } from "../agents/generator.js";
-import { runCritic } from "../agents/critic.js";
-import { runRefiner } from "../agents/refiner.js";
-import { outputExists } from "../utils/fileIO.js";
-import { log } from "../utils/logger.js";
+import { PipelineState, AgentName, AgentOutput } from "../types/index";
+import { runResearcher } from "../agents/researcher";
+import { runPlanner } from "../agents/planner";
+import { runGenerator } from "../agents/generator";
+import { runCritic } from "../agents/critic";
+import { runRefiner } from "../agents/refiner";
+import { outputExists } from "../utils/fileIO";
+import { log } from "../utils/logger";
 
 const PIPELINE = "Pipeline";
 
-const AGENT_OUTPUT_PATHS: Record<AgentName, string> = {
+export const AGENT_OUTPUT_PATHS: Record<AgentName, string> = {
   Researcher: "outputs/01_research.md",
   Planner: "outputs/02_outline.md",
   Generator: "outputs/03_prd_draft.md",
@@ -18,7 +18,16 @@ const AGENT_OUTPUT_PATHS: Record<AgentName, string> = {
   Refiner: "outputs/05_final_prd.md",
 };
 
-export async function runPipeline(idea: string): Promise<PipelineState> {
+export type ProgressEvent =
+  | { type: "agent_start"; agent: AgentName }
+  | { type: "agent_done"; agent: AgentName; durationMs: number; content: string }
+  | { type: "pipeline_done"; totalMs: number }
+  | { type: "error"; agent: AgentName; message: string };
+
+export async function runPipeline(
+  idea: string,
+  onProgress?: (event: ProgressEvent) => void
+): Promise<PipelineState> {
   const client = new Anthropic();
   const state: PipelineState = {
     idea,
@@ -41,7 +50,6 @@ export async function runPipeline(idea: string): Promise<PipelineState> {
   for (const agent of agents) {
     const outputPath = AGENT_OUTPUT_PATHS[agent.name];
 
-    // Resume: skip agents whose output already exists
     if (await outputExists(outputPath)) {
       log(PIPELINE, `Skipping ${agent.name} — output already exists at ${outputPath}`);
       state.completedAgents.push(agent.name);
@@ -49,13 +57,17 @@ export async function runPipeline(idea: string): Promise<PipelineState> {
     }
 
     log(PIPELINE, `━━━ Starting ${agent.name} ━━━`);
+    onProgress?.({ type: "agent_start", agent: agent.name });
+
     try {
       const result = await agent.run();
       results.push(result);
       state.completedAgents.push(agent.name);
+      onProgress?.({ type: "agent_done", agent: agent.name, durationMs: result.durationMs, content: result.content });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       log(PIPELINE, `ERROR in ${agent.name}: ${message}`);
+      onProgress?.({ type: "error", agent: agent.name, message });
       throw err;
     }
   }
@@ -63,7 +75,7 @@ export async function runPipeline(idea: string): Promise<PipelineState> {
   const totalMs = results.reduce((sum, r) => sum + r.durationMs, 0);
   log(PIPELINE, `━━━ Pipeline complete ━━━`);
   log(PIPELINE, `Agents run: ${results.length} | Total time: ${(totalMs / 1000).toFixed(1)}s`);
-  log(PIPELINE, `Final PRD: ${AGENT_OUTPUT_PATHS.Refiner}`);
+  onProgress?.({ type: "pipeline_done", totalMs });
 
   return state;
 }

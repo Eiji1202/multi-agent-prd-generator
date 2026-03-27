@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { runPipeline } from "./pipeline/orchestrator.js";
+import { runPipeline } from "./pipeline/orchestrator";
 
 const idea = process.argv.slice(2).join(" ").trim();
 

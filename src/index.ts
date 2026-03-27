@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { runPipeline } from "./pipeline/orchestrator.js";
+import { runPipeline } from "./pipeline/orchestrator";
 
 function printBanner(idea: string): void {
   console.log("\n┌─────────────────────────────────────────────┐");

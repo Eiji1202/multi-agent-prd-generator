@@ -4,16 +4,28 @@
   "description": "A 5-agent pipeline that transforms a one-line idea into a full PRD using Claude",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/main.ts",
-    "build": "tsc",
-    "start": "node dist/main.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "cli": "tsx src/main.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "next": "^16.2.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-markdown": "^10.1.0"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.2",
+    "@tailwindcss/typography": "^0.5.19",
     "@types/node": "^22.0.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.2",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   }

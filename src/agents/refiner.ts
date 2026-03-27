@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { AgentInput, AgentOutput } from "../types/index.js";
-import { loadOutput, saveOutput } from "../utils/fileUtils.js";
-import { log } from "../utils/logger.js";
+import { AgentInput, AgentOutput } from "../types/index";
+import { loadOutput, saveOutput } from "../utils/fileUtils";
+import { log } from "../utils/logger";
 
 const OUTPUT_PATH = "outputs/05_final_prd.md";
 const AGENT_NAME = "Refiner" as const;
