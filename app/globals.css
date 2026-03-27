@@ -1,0 +1,25 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* PRD本文以外を非表示 */
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  /* PRD出力エリアのスタイルをprint向けに調整 */
+  [data-print-content] {
+    border: none !important;
+    background: white !important;
+    padding: 0 !important;
+  }
+
+  [data-print-content] * {
+    color: black !important;
+  }
+}

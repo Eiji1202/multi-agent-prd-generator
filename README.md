@@ -42,8 +42,12 @@ npm install
 cp .env.example .env
 # Edit .env and set ANTHROPIC_API_KEY=sk-ant-...
 
-# 3. Run the pipeline
-npm run dev -- "A habit tracking app for remote teams"
+# 3a. Run via Web UI (Next.js)
+npm run dev
+# Open http://localhost:3000, enter your idea, and watch agents run live
+
+# 3b. Run via CLI
+npm run cli -- "A habit tracking app for remote teams"
 ```
 
 ### Example output
@@ -73,31 +77,60 @@ Pipeline:
   Final PRD: outputs/05_final_prd.md
 ```
 
+## Web UI
+
+The pipeline is also available as a Next.js web application with real-time progress streaming.
+
+```
+[入力フォーム]
+    │ アイデアを送信
+    ▼
+[API Route: /api/generate]
+    │ SSE (Server-Sent Events) でストリーミング
+    ▼
+[ブラウザ]
+  ✓ Researcher 完了 (17.2s)
+  ✓ Planner 完了 (12.4s)
+  ⟳ Generator 実行中...
+    ...
+  最終PRDをMarkdownレンダリングで表示
+```
+
+- **入力**: テキストエリアにアイデアを入力して送信
+- **進捗表示**: 各エージェントの実行状態をリアルタイムで表示
+- **出力**: 完成したPRDをブラウザ上でMarkdownレンダリング
+
 ## Directory Structure
 
 ```
+app/                         # Next.js App Router
+├── page.tsx                 # Web UI (input form + progress + PRD output)
+├── layout.tsx               # Root layout with Tailwind
+├── globals.css
+└── api/generate/route.ts    # SSE streaming endpoint
 src/
 ├── agents/
-│   ├── researcher.ts   # Agent 1: market research
-│   ├── planner.ts      # Agent 2: PRD structure
-│   ├── generator.ts    # Agent 3: full PRD draft
-│   ├── critic.ts       # Agent 4: scored critique
-│   └── refiner.ts      # Agent 5: polished final PRD
+│   ├── researcher.ts        # Agent 1: market research
+│   ├── planner.ts           # Agent 2: PRD structure
+│   ├── generator.ts         # Agent 3: full PRD draft
+│   ├── critic.ts            # Agent 4: scored critique
+│   └── refiner.ts           # Agent 5: polished final PRD
 ├── pipeline/
-│   └── orchestrator.ts # Sequential runner with resume support
+│   ├── orchestrator.ts      # Sequential runner with onProgress callback
+│   └── runner.ts            # Web UI用ラッパー
 ├── types/
-│   └── index.ts        # Shared TypeScript interfaces
+│   └── index.ts             # Shared TypeScript interfaces
 └── utils/
-    ├── fileIO.ts        # Read/write with metadata headers
-    ├── fileUtils.ts     # Low-level file helpers
-    ├── logger.ts        # Timestamped agent logger
-    └── tokenEstimator.ts# Context window usage estimation
-outputs/                 # Generated Markdown files (gitignored)
+    ├── fileIO.ts             # Read/write with metadata headers
+    ├── fileUtils.ts          # Low-level file helpers
+    ├── logger.ts             # Timestamped agent logger
+    └── tokenEstimator.ts     # Context window usage estimation
+outputs/                     # Generated Markdown files (gitignored)
 docs/
-├── architecture.md      # Deep-dive on each agent
-├── context-design.md    # Context management strategy
-├── evaluation-rubric.md # Critic scoring rubric
-└── learnings.md         # Multi-agent design observations
+├── architecture.md          # Deep-dive on each agent
+├── context-design.md        # Context management strategy
+├── evaluation-rubric.md     # Critic scoring rubric
+└── learnings.md             # Multi-agent design observations
 ```
 
 ## Docs

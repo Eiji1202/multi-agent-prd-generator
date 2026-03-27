@@ -1,9 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { AgentInput, AgentOutput } from "../types/index.js";
-import { loadOutput, saveOutput } from "../utils/fileUtils.js";
-import { log } from "../utils/logger.js";
+import { AgentInput, AgentOutput } from "../types/index";
+import { log } from "../utils/logger";
 
-const OUTPUT_PATH = "outputs/03_prd_draft.md";
 const AGENT_NAME = "Generator" as const;
 const MAX_RETRIES = 3;
 
@@ -48,8 +46,8 @@ export async function runGenerator(
   input: AgentInput
 ): Promise<AgentOutput> {
   const startedAt = Date.now();
-  log(AGENT_NAME, "Reading outline…");
-  const outline = await loadOutput("outputs/02_outline.md");
+  const outline = input.previousOutputs.Planner;
+  if (!outline) throw new Error("Planner の出力がありません。先に Planner を実行してください。");
 
   log(AGENT_NAME, `Generating full PRD draft for: "${input.idea}"`);
   let lastError: Error | null = null;
@@ -74,12 +72,11 @@ export async function runGenerator(
         .join("\n");
 
       const output = `# PRD Draft\n\n**Idea:** ${input.idea}\n\n${content}`;
-      await saveOutput(OUTPUT_PATH, output);
 
       const durationMs = Date.now() - startedAt;
-      log(AGENT_NAME, `Done in ${(durationMs / 1000).toFixed(1)}s → ${OUTPUT_PATH}`);
+      log(AGENT_NAME, `Done in ${(durationMs / 1000).toFixed(1)}s`);
 
-      return { agentName: AGENT_NAME, outputPath: OUTPUT_PATH, content: output, durationMs };
+      return { agentName: AGENT_NAME, content: output, durationMs };
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
       if (attempt < MAX_RETRIES) {

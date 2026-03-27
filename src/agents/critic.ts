@@ -1,9 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { AgentInput, AgentOutput } from "../types/index.js";
-import { loadOutput, saveOutput } from "../utils/fileUtils.js";
-import { log } from "../utils/logger.js";
+import { AgentInput, AgentOutput } from "../types/index";
+import { log } from "../utils/logger";
 
-const OUTPUT_PATH = "outputs/04_critique.md";
 const AGENT_NAME = "Critic" as const;
 const MAX_RETRIES = 3;
 
@@ -113,8 +111,8 @@ export async function runCritic(
   input: AgentInput
 ): Promise<AgentOutput> {
   const startedAt = Date.now();
-  log(AGENT_NAME, "Reading PRD draft…");
-  const draft = await loadOutput("outputs/03_prd_draft.md");
+  const draft = input.previousOutputs.Generator;
+  if (!draft) throw new Error("Generator の出力がありません。先に Generator を実行してください。");
 
   log(AGENT_NAME, "Running UX, Technical, and Business critics in parallel…");
   let lastError: Error | null = null;
@@ -167,12 +165,10 @@ export async function runCritic(
         synthesisText,
       ].join("\n");
 
-      await saveOutput(OUTPUT_PATH, output);
-
       const durationMs = Date.now() - startedAt;
-      log(AGENT_NAME, `Done in ${(durationMs / 1000).toFixed(1)}s → ${OUTPUT_PATH}`);
+      log(AGENT_NAME, `Done in ${(durationMs / 1000).toFixed(1)}s`);
 
-      return { agentName: AGENT_NAME, outputPath: OUTPUT_PATH, content: output, durationMs };
+      return { agentName: AGENT_NAME, content: output, durationMs };
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
       if (attempt < MAX_RETRIES) {

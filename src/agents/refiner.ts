@@ -1,9 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { AgentInput, AgentOutput } from "../types/index.js";
-import { loadOutput, saveOutput } from "../utils/fileUtils.js";
-import { log } from "../utils/logger.js";
+import { AgentInput, AgentOutput } from "../types/index";
+import { log } from "../utils/logger";
 
-const OUTPUT_PATH = "outputs/05_final_prd.md";
 const AGENT_NAME = "Refiner" as const;
 const MAX_RETRIES = 3;
 
@@ -27,11 +25,9 @@ export async function runRefiner(
   input: AgentInput
 ): Promise<AgentOutput> {
   const startedAt = Date.now();
-  log(AGENT_NAME, "Reading PRD draft and critique...");
-  const [draft, critique] = await Promise.all([
-    loadOutput("outputs/03_prd_draft.md"),
-    loadOutput("outputs/04_critique.md"),
-  ]);
+  const draft = input.previousOutputs.Generator;
+  const critique = input.previousOutputs.Critic;
+  if (!draft || !critique) throw new Error("Generator と Critic の出力が必要です。先に実行してください。");
 
   log(AGENT_NAME, `Refining final PRD for: "${input.idea}"`);
   let lastError: Error | null = null;
@@ -56,12 +52,11 @@ export async function runRefiner(
         .join("\n");
 
       const output = `# Final PRD\n\n**Idea:** ${input.idea}\n\n${content}`;
-      await saveOutput(OUTPUT_PATH, output);
 
       const durationMs = Date.now() - startedAt;
-      log(AGENT_NAME, `Done in ${(durationMs / 1000).toFixed(1)}s -> ${OUTPUT_PATH}`);
+      log(AGENT_NAME, `Done in ${(durationMs / 1000).toFixed(1)}s`);
 
-      return { agentName: AGENT_NAME, outputPath: OUTPUT_PATH, content: output, durationMs };
+      return { agentName: AGENT_NAME, content: output, durationMs };
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
       if (attempt < MAX_RETRIES) {

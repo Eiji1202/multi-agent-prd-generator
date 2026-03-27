@@ -1,4 +1,4 @@
-import { log } from "./logger.js";
+import { log } from "./logger";
 
 // Rough estimate: ~4 characters per token (GPT/Claude heuristic)
 const CHARS_PER_TOKEN = 4;
