@@ -4,3 +4,4 @@ dist/
 .env
 outputs/
 *.js.map
+*.tsbuildinfo

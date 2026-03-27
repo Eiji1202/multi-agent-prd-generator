@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import type { ProgressEvent } from "../src/pipeline/orchestrator";
+import { downloadMarkdown, downloadPdf, downloadDocx } from "./lib/download";
 
 type AgentName = "Researcher" | "Planner" | "Generator" | "Critic" | "Refiner";
 
@@ -128,7 +129,7 @@ export default function Home() {
   return (
     <main className="max-w-3xl mx-auto px-4 py-16 space-y-10">
       {/* ヘッダー */}
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-2" data-print-hide>
         <h1 className="text-3xl font-bold tracking-tight">マルチエージェント PRD ジェネレーター</h1>
         <p className="text-gray-400 text-sm">
           5つのAIエージェントがアイデアをプロダクト要件定義書（PRD）に自動変換します。
@@ -137,7 +138,7 @@ export default function Home() {
 
       {/* 入力フォーム */}
       {status === "idle" && (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" data-print-hide>
           <input
             type="text"
             value={idea}
@@ -158,7 +159,7 @@ export default function Home() {
 
       {/* パイプライン進捗 */}
       {status !== "idle" && (
-        <div className="space-y-6">
+        <div className="space-y-6" data-print-hide>
           <div className="rounded-lg border border-gray-800 bg-gray-900 p-5 space-y-1">
             <p className="text-xs text-gray-500 mb-3 font-mono">アイデア: &quot;{idea}&quot;</p>
             {AGENTS.map((name) => {
@@ -206,10 +207,32 @@ export default function Home() {
 
       {/* 最終PRD出力 */}
       {finalPrd && (
-        <div className="rounded-lg border border-gray-800 bg-gray-900 p-6">
-          <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-4">
-            最終 PRD
-          </h2>
+        <div className="rounded-lg border border-gray-800 bg-gray-900 p-6" data-print-content>
+          <div className="flex items-center justify-between mb-4" data-print-hide>
+            <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide">
+              最終 PRD
+            </h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => downloadMarkdown(finalPrd)}
+                className="rounded border border-gray-700 px-3 py-1.5 text-xs text-gray-300 hover:bg-gray-800 transition-colors"
+              >
+                Markdown
+              </button>
+              <button
+                onClick={downloadPdf}
+                className="rounded border border-gray-700 px-3 py-1.5 text-xs text-gray-300 hover:bg-gray-800 transition-colors"
+              >
+                PDF
+              </button>
+              <button
+                onClick={() => downloadDocx(finalPrd)}
+                className="rounded border border-gray-700 px-3 py-1.5 text-xs text-gray-300 hover:bg-gray-800 transition-colors"
+              >
+                Word
+              </button>
+            </div>
+          </div>
           <div className="prose prose-invert prose-sm max-w-none">
             <ReactMarkdown>{finalPrd}</ReactMarkdown>
           </div>

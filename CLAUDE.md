@@ -20,8 +20,17 @@ https://www.anthropic.com/engineering/harness-design-long-running-apps
 - Issueごとにブランチを切る: `feature/issue-{番号}-{短い説明}`
 - 実装完了後は `gh pr create` でPRを作成する
 - PRのタイトルはIssue番号を含める: `fix: #1 Project setup`
+- issueとPRのタイトルと本文は日本語
 
 ## 重要
 
 PRを作成したら必ず止まり、マージは行わないこと。
 マージは人間が行う。
+
+## 言語ルール
+
+- ターミナルへのログ出力は日本語で書く（例: `🔍 Researcher開始...`）
+- コード内コメントは日本語
+- README.mdは日本語セクションを英語の前に置く
+- エラーメッセージは日本語
+- 変数名・関数名・コミットメッセージは英語のまま
